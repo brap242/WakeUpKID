@@ -3,10 +3,12 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:wakeup_kid/model/wakeup_model.dart';
 import 'package:wakeup_kid/screens/homepage/widgets/current_time.dart';
 import 'package:wakeup_kid/screens/homepage/widgets/setup_form.dart';
+import 'package:wakeup_kid/services/alarm_service.dart';
+import 'package:wakeup_kid/services/storage_service.dart';
 
 import '../../main.dart';
 import 'widgets/event_list_item.dart';
@@ -29,25 +31,31 @@ class _HomePageState extends State<HomePage> {
   Timer timer;
   int seconds;
 
-  String lastActiveEventId;
+  StorageService _storageService;
+  AlarmService _alarmService;
 
   @override
   void initState() {
     super.initState();
 
+    _storageService = StorageService();
+    _alarmService = AlarmService();
+
     isEditing = false;
     model = WakeUpModel();
     actualTime = TimeOfDay(hour: 0, minute: 0);
-    getSharedPrefs();
 
-    lastActiveEventId = 'none';
+    _storageService.getModel().then((value) => setState(() => model = value));
 
-    timer = Timer.periodic(
-        Duration(seconds: tickInterval), (Timer timer) => timeCheck());
-
-    port.listen((_) => () => timeCheck());
+    // timer = Timer.periodic(
+    //     Duration(seconds: tickInterval), (Timer timer) => timeCheck());
+    // port.listen((_) => () => timeCheck());
 
     actualTime = TimeOfDay.now();
+
+    _alarmService.initTimer();
+
+    port.listen((_) => _timeCheck());
   }
 
   @override
@@ -56,18 +64,7 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  Future<Null> getSharedPrefs() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    var modelJsonData = prefs.getString('model');
-    if (modelJsonData == null) return;
-    setState(
-      () {
-        model = WakeUpModel.fromJson(jsonDecode(modelJsonData));
-      },
-    );
-  }
-
-  void timeCheck() {
+  Future<void> _timeCheck() async {
     // time filter
     if (actualTime.hour == TimeOfDay.now().hour &&
         actualTime.minute == TimeOfDay.now().minute) return;
@@ -79,11 +76,13 @@ class _HomePageState extends State<HomePage> {
     );
 
     var alarmId = model.getEventForTime(actualTime);
+    var lastActiveEventId = await _storageService.getLastActiveAlarmId();
     if (alarmId != null && alarmId != lastActiveEventId) {
       setState(
         () {
           model.playEvent(alarmId);
-          lastActiveEventId = alarmId;
+          _storageService.saveLastActiveAlarmId(alarmId);
+          _storageService.saveModel(model);
         },
       );
     }
@@ -110,6 +109,7 @@ class _HomePageState extends State<HomePage> {
               (value) => setState(
                 () {
                   model = value;
+                  _storageService.saveModel(model);
                 },
               ),
             );
@@ -123,6 +123,7 @@ class _HomePageState extends State<HomePage> {
                     () {
                       model.isMute = false;
                       model.rescheduleEvents();
+                      _storageService.saveModel(model);
                     },
                   ),
                 )
@@ -133,6 +134,7 @@ class _HomePageState extends State<HomePage> {
                       model.playNone();
                       model.isMute = true;
                       model.rescheduleEvents();
+                      _storageService.saveModel(model);
                     },
                   ),
                 ),
@@ -162,10 +164,12 @@ class _HomePageState extends State<HomePage> {
                   ),
                   Switch(
                     value: isEditing,
-                    onChanged: (newValue) => setState(() {
-                      model.playNone();
-                      isEditing = newValue;
-                    }),
+                    onChanged: (newValue) => setState(
+                      () {
+                        model.playNone();
+                        isEditing = newValue;
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -182,6 +186,7 @@ class _HomePageState extends State<HomePage> {
                                     setState(
                                       () => model.playEvent((e.id)),
                                     );
+                                    _storageService.saveModel(model);
                                   },
                             child: EventListItem(
                               isEditMode: isEditing,
@@ -191,29 +196,34 @@ class _HomePageState extends State<HomePage> {
                                 () {
                                   model.moveUpEvent(e.id);
                                   model.rescheduleEvents();
+                                  _storageService.saveModel(model);
                                 },
                               ),
                               onMoveDown: () => setState(
                                 () {
                                   model.moveDownEvent(e.id);
                                   model.rescheduleEvents();
+                                  _storageService.saveModel(model);
                                 },
                               ),
                               onMinusDuration: () => setState(
                                 () {
                                   e.durationMinus();
                                   model.rescheduleEvents();
+                                  _storageService.saveModel(model);
                                 },
                               ),
                               onPlusDuration: () => setState(
                                 () {
                                   e.durationPlus();
                                   model.rescheduleEvents();
+                                  _storageService.saveModel(model);
                                 },
                               ),
                               onToggleEnable: (newValue) => setState(
                                 () {
                                   model.toggleEnable(e.id, newValue);
+                                  _storageService.saveModel(model);
                                 },
                               ),
                             ),

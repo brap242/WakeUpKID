@@ -69,10 +69,21 @@ class WakeUpModel {
       : events.where((element) => element.isEnabled).toList();
 
   String getEventForTime(TimeOfDay time) {
-    var item = events
-        .firstWhere((event) => event.time.isInInterval(time, event.duration));
+    // var item = events.firstWhere(
+    //     (event) => event.time.isInInterval(time, event.duration),
+    //     orElse: () => null);
+    // return item?.id ?? null;
+    for (var event in events) {
+      print(
+          '${time.hour}:${time.minute} - ${event.time.hour}:${event.time.minute}');
 
-    return item?.id ?? null;
+      if (event.time.isInInterval(time, event.duration)) {
+        print('udalost nalezena');
+        return event.id;
+      }
+    }
+
+    return null;
   }
 
   void parseMinutDoSkoly(String text) {
@@ -158,37 +169,6 @@ class WakeUpModel {
 
     enabledEvents.first.isFirst = true;
     enabledEvents.last.isLast = true;
-
-    //persist
-    var prefs = await SharedPreferences.getInstance();
-    var modelData = this.toJson();
-    await prefs.setString('model', jsonEncode(modelData));
-
-    AndroidAlarmManager.initialize();
-
-    //reschedule allarms
-    for (var i = 0; i < events.length; i++) {
-      var event = events[i];
-
-      if (event.androidAllarmId > 0) {
-        AndroidAlarmManager.cancel(event.androidAllarmId);
-      }
-
-      if (event.isEnabled) {
-        event.androidAllarmId = Random().nextInt(pow(2, 31));
-        AndroidAlarmManager.oneShot(
-          const Duration(seconds: 5),
-          event.androidAllarmId,
-          () {
-            var uiSendPort =
-                IsolateNameServer.lookupPortByName('wakeup_kid_isolate_name');
-            uiSendPort?.send(null);
-          },
-          exact: true,
-          wakeup: true,
-        );
-      }
-    }
   }
 
   WakeUpItem _getPrevEnabledEvent(int index) {
