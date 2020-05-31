@@ -1,35 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:wakeup_kid/main.dart';
-import 'package:wakeup_kid/model/wakeup_model.dart';
 
 import 'storage_service.dart';
 
-Future<void> showOngoingNotification() async {
-  var androidPlatformChannelSpecifics = AndroidNotificationDetails(
-    'your channel id',
-    'your channel name',
-    'your channel description',
-    importance: Importance.Max,
-    priority: Priority.High,
-    ongoing: true,
-    autoCancel: false,
-    visibility: NotificationVisibility.Public,
-  );
-  var iOSPlatformChannelSpecifics = IOSNotificationDetails();
-  var platformChannelSpecifics = NotificationDetails(
-      androidPlatformChannelSpecifics, iOSPlatformChannelSpecifics);
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-  var storageService = StorageService();
+class NotificationManager {
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+  AndroidInitializationSettings initializationSettingsAndroid;
+  IOSInitializationSettings initializationSettingsIOS;
+  InitializationSettings initializationSettings;
 
-  var model = await storageService.getModel();
+  void initNotificationManager() {
+    initializationSettingsAndroid =
+        new AndroidInitializationSettings('@mipmap/ic_launcher');
+    initializationSettingsIOS = new IOSInitializationSettings();
+    initializationSettings = new InitializationSettings(
+        initializationSettingsAndroid, initializationSettingsIOS);
+    flutterLocalNotificationsPlugin = new FlutterLocalNotificationsPlugin();
+    flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
 
-  var eventId = model.getEventForTime(TimeOfDay.now());
-  if (eventId != null) {
-    model.playEvent(eventId);
-    var event = model.getEvent(eventId);
-
-    await flutterLocalNotificationsPlugin.show(int.parse(eventId), 'WakeUp Kid',
-        event.title, platformChannelSpecifics);
+  void showNotificationWithDefaultSound(String title, String body) {
+    var androidPlatformChannelSpecifics = new AndroidNotificationDetails(
+        'your channel id', 'your channel name', 'your channel description',
+        importance: Importance.Max, priority: Priority.High);
+    var iOSPlatformChannelSpecifics = new IOSNotificationDetails();
+    var platformChannelSpecifics = new NotificationDetails(
+        androidPlatformChannelSpecifics, iOSPlatformChannelSpecifics);
+    flutterLocalNotificationsPlugin.show(
+        0, title, body, platformChannelSpecifics);
   }
 }

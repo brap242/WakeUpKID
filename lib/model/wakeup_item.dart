@@ -57,7 +57,7 @@ class WakeUpItem {
       order: json['order'] as int,
       isFirst: json['isFirst'] as bool,
       isLast: json['isLast'] as bool,
-      isPlaying: json['isPlaying'] as bool,
+      //isPlaying: json['isPlaying'] as bool,
       androidAllarmId: json['androidAllarmId'] as int ?? 0,
     );
   }
@@ -75,7 +75,7 @@ class WakeUpItem {
         'order': order,
         'isFirst': isFirst,
         'isLast': isLast,
-        'isPlaying': isPlaying,
+        //'isPlaying': isPlaying,
         'androidAllarmId': androidAllarmId
       };
 }

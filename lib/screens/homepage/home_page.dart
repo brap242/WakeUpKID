@@ -46,10 +46,10 @@ class _HomePageState extends State<HomePage> {
 
     _storageService.getModel().then((value) => setState(() => model = value));
 
+    actualTime = TimeOfDay.now();
+
     timer =
         Timer.periodic(Duration(seconds: 10), (Timer timer) => _timeCheck());
-
-    actualTime = TimeOfDay.now();
 
     _alarmService.initTimer();
 

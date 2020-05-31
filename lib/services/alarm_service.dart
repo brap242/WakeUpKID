@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:android_alarm_manager/android_alarm_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:wakeup_kid/services/storage_service.dart';
 
 import 'notification_service.dart';
@@ -32,10 +33,27 @@ class AlarmService {
     if (alarmId != null && alarmId != lastActiveAlarmId) {
       print('!!!! -event found- !!!!');
 
+      var alarm = model.getEvent(alarmId);
+
+      NotificationManager n = new NotificationManager();
+      n.initNotificationManager();
+
+      var notificationDetails = NotificationDetails(
+          AndroidNotificationDetails(alarmId, "WakeUP Kid", alarm.title,
+              importance: Importance.High),
+          null);
+
+      n.flutterLocalNotificationsPlugin.show(
+          int.parse(alarmId), "WakeUP Kid", alarm.title, notificationDetails);
+      //n.showNotificationWithDefaultSound("WakeUP Kid", alarm.title);
+
       var uiSendPort =
           IsolateNameServer.lookupPortByName('wakeup_kid_isolate_name');
-      uiSendPort?.send(null);
-      await showOngoingNotification();
+      if (uiSendPort != null) {
+        uiSendPort?.send(null);
+      }
+
+      return;
     }
     print('allarm manager-end');
   }
