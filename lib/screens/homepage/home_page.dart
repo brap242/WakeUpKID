@@ -1,8 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:wakeup_kid/model/received_notification.dart';
 
 import 'package:wakeup_kid/model/wakeup_model.dart';
 import 'package:wakeup_kid/screens/homepage/widgets/current_time.dart';
@@ -23,8 +24,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  static const int tickInterval = 10;
-
   WakeUpModel model;
   bool isEditing;
   TimeOfDay actualTime;
@@ -47,15 +46,17 @@ class _HomePageState extends State<HomePage> {
 
     _storageService.getModel().then((value) => setState(() => model = value));
 
-    // timer = Timer.periodic(
-    //     Duration(seconds: tickInterval), (Timer timer) => timeCheck());
-    // port.listen((_) => () => timeCheck());
+    timer =
+        Timer.periodic(Duration(seconds: 10), (Timer timer) => _timeCheck());
 
     actualTime = TimeOfDay.now();
 
     _alarmService.initTimer();
 
     port.listen((_) => _timeCheck());
+
+    _configureDidReceiveLocalNotificationSubject();
+    _configureSelectNotificationSubject();
   }
 
   @override
@@ -76,16 +77,49 @@ class _HomePageState extends State<HomePage> {
     );
 
     var alarmId = model.getEventForTime(actualTime);
-    var lastActiveEventId = await _storageService.getLastActiveAlarmId();
+    var lastActiveEventId = model.lastStartedAlarmId;
     if (alarmId != null && alarmId != lastActiveEventId) {
       setState(
         () {
           model.playEvent(alarmId);
-          _storageService.saveLastActiveAlarmId(alarmId);
+          model.lastStartedAlarmId = alarmId;
           _storageService.saveModel(model);
         },
       );
     }
+  }
+
+  void _configureDidReceiveLocalNotificationSubject() {
+    didReceiveLocalNotificationSubject.stream
+        .listen((ReceivedNotification receivedNotification) async {
+      await showDialog(
+        context: context,
+        builder: (BuildContext context) => CupertinoAlertDialog(
+          title: receivedNotification.title != null
+              ? Text(receivedNotification.title)
+              : null,
+          content: receivedNotification.body != null
+              ? Text(receivedNotification.body)
+              : null,
+          actions: [
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              child: Text('Ok'),
+              onPressed: () async {
+                Navigator.of(context, rootNavigator: true).pop();
+                await Navigator.of(context).pushNamed('/home');
+              },
+            )
+          ],
+        ),
+      );
+    });
+  }
+
+  void _configureSelectNotificationSubject() {
+    selectNotificationSubject.stream.listen((String payload) async {
+      await Navigator.pushNamed(context, '/home');
+    });
   }
 
   @override

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class Splash extends StatefulWidget {
   Splash({Key key}) : super(key: key);

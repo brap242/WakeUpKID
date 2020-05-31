@@ -1,6 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:wakeup_kid/model/wakeup_model.dart';
 
 class StorageService {
@@ -10,40 +11,24 @@ class StorageService {
 
   StorageService();
 
+  Future<File> _getStorageFile() async {
+    Directory appDocDir = await getApplicationDocumentsDirectory();
+    return File('${appDocDir.path}/counter.txt');
+  }
+
   Future<WakeUpModel> getModel() async {
-    var prefs = await SharedPreferences.getInstance();
-    prefs.reload();
-    var modelJsonData = prefs.getString(modelStoreName);
-    return modelJsonData != null
-        ? WakeUpModel.fromJson(jsonDecode(modelJsonData))
-        : WakeUpModel();
+    var file = await _getStorageFile();
+    if (file != null && await file.exists()) {
+      var json = file.readAsStringSync();
+      return WakeUpModel.fromJson(jsonDecode(json));
+    }
+
+    return WakeUpModel();
   }
 
   Future<void> saveModel(WakeUpModel model) async {
-    var prefs = await SharedPreferences.getInstance();
-    prefs.reload();
-    var modelData = model.toJson();
-    await prefs.setString(modelStoreName, jsonEncode(modelData));
-    prefs.reload();
+    var modelJson = jsonEncode(model);
+    final file = await _getStorageFile();
+    file.writeAsString(modelJson);
   }
-
-  Future<String> getLastActiveAlarmId() async {
-    var prefs = await SharedPreferences.getInstance();
-    return prefs.getString(lastAlarmIdStoreName);
-  }
-
-  Future<void> saveLastActiveAlarmId(String alarmId) async {
-    var prefs = await SharedPreferences.getInstance();
-    await prefs.setString(lastAlarmIdStoreName, alarmId);
-  }
-
-  // Future<int> getAlarmInstanceId() async {
-  //   var prefs = await SharedPreferences.getInstance();
-  //   return prefs.getInt(alarmInstanceId);
-  // }
-
-  // Future<void> saveAlarmInstanceId(int alarmId) async {
-  //   var prefs = await SharedPreferences.getInstance();
-  //   await prefs.setInt(alarmInstanceId, alarmId);
-  // }
 }

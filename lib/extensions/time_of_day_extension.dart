@@ -11,8 +11,9 @@ extension TimeOfDayExtensions on TimeOfDay {
   }
 
   bool isInInterval(TimeOfDay start, int duration) {
-    return this.getTicks() >= start.getTicks() &&
-        this.getTicks() < (start.getTicks() + duration);
+    int ticks = this.getTicks();
+    int endTicks = start.getTicks() + duration;
+    return ticks >= start.getTicks() && ticks < endTicks;
   }
 
   int getTicks() {

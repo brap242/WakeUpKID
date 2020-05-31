@@ -4,6 +4,8 @@ import 'package:android_alarm_manager/android_alarm_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:wakeup_kid/services/storage_service.dart';
 
+import 'notification_service.dart';
+
 class AlarmService {
   void initTimer() async {
     AndroidAlarmManager.initialize();
@@ -22,16 +24,19 @@ class AlarmService {
     var _storageService = StorageService();
     var model = await _storageService.getModel();
 
-    var lastActiveAlarmId = await _storageService.getLastActiveAlarmId();
+    var lastActiveAlarmId = model.lastStartedAlarmId;
 
     var actualTime = TimeOfDay.now();
     var alarmId = model.getEventForTime(actualTime);
 
     if (alarmId != null && alarmId != lastActiveAlarmId) {
+      print('!!!! -event found- !!!!');
+
       var uiSendPort =
           IsolateNameServer.lookupPortByName('wakeup_kid_isolate_name');
       uiSendPort?.send(null);
-      print('allarm manager-end');
+      await showOngoingNotification();
     }
+    print('allarm manager-end');
   }
 }

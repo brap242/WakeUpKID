@@ -21,9 +21,6 @@ class _AboutPageState extends State<AboutPage> {
 
   @override
   Widget build(BuildContext context) {
-    var normalTextStyle = TextStyle(
-        color: Colors.white, fontSize: 12, fontWeight: FontWeight.normal);
-
     return Scaffold(
       backgroundColor: Color(0xFF713684),
       appBar: AppBar(

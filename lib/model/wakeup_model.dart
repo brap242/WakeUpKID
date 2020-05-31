@@ -1,13 +1,7 @@
 import 'dart:convert';
-import 'dart:isolate';
-import 'dart:math';
-import 'dart:ui';
 
-import 'package:android_alarm_manager/android_alarm_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakeup_kid/model/wakeup_item.dart';
-
 import '../extensions/time_of_day_extension.dart';
 import '../kid_colors.dart';
 
@@ -15,8 +9,9 @@ class WakeUpModel {
   List<WakeUpItem> events;
 
   int minutDoSkoly;
-
   TimeOfDay casStartuSkoly;
+
+  String lastStartedAlarmId;
 
   bool isMute;
   bool editMode;
@@ -46,6 +41,7 @@ class WakeUpModel {
         DateTime.parse(json['casStartuSkoly'] as String));
     result.isMute = json['isMute'] as bool;
     result.editMode = json['editMode'] as bool;
+    result.lastStartedAlarmId = json['lastStartedAlarmId'] as String;
 
     return result;
   }
@@ -60,8 +56,13 @@ class WakeUpModel {
               .toIso8601String(),
       'isMute': isMute,
       'editMode': editMode,
+      'lastStartedAlarmId': lastStartedAlarmId
     };
     return result;
+  }
+
+  WakeUpItem getEvent(String id) {
+    return events.firstWhere((element) => element.id == id);
   }
 
   List<WakeUpItem> getEvents({bool isEditing}) => isEditing
@@ -74,12 +75,14 @@ class WakeUpModel {
     //     orElse: () => null);
     // return item?.id ?? null;
     for (var event in events) {
-      print(
-          '${time.hour}:${time.minute} - ${event.time.hour}:${event.time.minute}');
+      if (event.isEnabled) {
+        print(
+            '${time.hour}:${time.minute} x ${event.time.hour}:${event.time.minute}');
 
-      if (event.time.isInInterval(time, event.duration)) {
-        print('udalost nalezena');
-        return event.id;
+        if (event.time.isInInterval(time, event.duration)) {
+          print('udalost nalezena');
+          return event.id;
+        }
       }
     }
 
